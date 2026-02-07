@@ -1,0 +1,30 @@
+{
+    "mcpServers": {
+        "shadcn": {
+            "command": "npx",
+            "args": [
+                "shadcn@latest",
+                "mcp"
+            ]
+        },
+        "context7": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@upstash/context7-mcp",
+                "--api-key",
+                "ctx7sk-90caae61-874b-4298-90c1-52bf1a85f886"
+            ]
+        },
+        "supabase": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@supabase/mcp-server"
+            ],
+            "env": {
+                "SUPABASE_ACCESS_TOKEN": "sbp_25aed3ae5671bb95b3c50ca156853cacdd47aed3"
+            }
+        }
+    }
+}
