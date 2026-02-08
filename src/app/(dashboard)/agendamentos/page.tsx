@@ -74,9 +74,13 @@ export default function AgendamentosPage() {
             // Fetch sessions
             const sessionsResult = await getSessionsByDateRange(startDate, endDate);
             if (sessionsResult.data) {
-                setSessions(sessionsResult.data);
+                // Normalize session_date from ISO "2026-02-08T00:00:00+00:00" to "2026-02-08"
+                const normalized = sessionsResult.data.map(s => ({
+                    ...s,
+                    session_date: s.session_date.substring(0, 10),
+                }));
+                setSessions(normalized);
             }
-
             // Fetch patients and professional settings
             const { data: patientsData } = await supabase
                 .from("patients")
@@ -129,25 +133,34 @@ export default function AgendamentosPage() {
         (s) => s.session_date === selectedDate
     );
 
+    const navigateDate = (direction: number) => {
+        const d = new Date(selectedDate + "T12:00:00");
+        if (view === "month") {
+            d.setMonth(d.getMonth() + direction);
+        } else if (view === "week") {
+            d.setDate(d.getDate() + direction * 7);
+        } else {
+            d.setDate(d.getDate() + direction);
+        }
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        setSelectedDate(`${year}-${month}-${day}`);
+    };
+
     return (
         <div className="h-[calc(100vh-2rem)] flex bg-white dark:bg-slate-950 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xl">
             {/* Left Sidebar */}
             <aside className="w-[280px] flex-none border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 flex flex-col pt-4">
                 <div className="px-4 mb-4">
                     <Button
-                        className="w-full bg-white dark:bg-slate-800 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 h-12 rounded-full shadow-sm hover:shadow-md transition-all justify-start px-4 gap-3 font-semibold text-base"
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-white h-14 rounded-2xl shadow-lg shadow-purple-600/20 flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98]"
                         onClick={() => handleNewAppointment()}
                     >
-                        <svg width="36" height="36" viewBox="0 0 36 36"><path fill="#34A853" d="M16 16v14h4V20z"></path><path fill="#4285F4" d="M30 16H20l-4 4h14z"></path><path fill="#FBBC05" d="M6 16v4h10l4-4z"></path><path fill="#EA4335" d="M20 16V6h-4v14z"></path><path fill="none" d="M0 0h36v36H0z"></path></svg>
-                        <span className="bg-gradient-to-r from-google-blue to-google-red bg-clip-text text-transparent">Novo evento</span>
-                        {/* Using standard styling for now as SVG path above might be quirky without proper icon. Reverting to simple icon. */}
-                    </Button>
-                    <Button
-                        className="w-full mt-2 bg-purple-600 hover:bg-purple-700 text-white h-12 rounded-2xl shadow-lg shadow-purple-600/20 flex items-center justify-center gap-2"
-                        onClick={() => handleNewAppointment()}
-                    >
-                        <Plus className="w-6 h-6" />
-                        <span className="font-semibold text-lg">Criar</span>
+                        <div className="bg-white/20 p-2 rounded-xl">
+                            <Plus className="w-6 h-6" />
+                        </div>
+                        <span className="font-semibold text-lg">Novo Agendamento</span>
                     </Button>
                 </div>
 
@@ -175,25 +188,10 @@ export default function AgendamentosPage() {
                                 Hoje
                             </Button>
                             <div className="flex items-center gap-1">
-                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => {
-                                    // Quick nav logic based on view
-                                    const d = new Date(selectedDate + "T12:00:00"); // Safe parsing
-                                    d.setDate(d.getDate() - 1);
-                                    const year = d.getFullYear();
-                                    const month = String(d.getMonth() + 1).padStart(2, '0');
-                                    const day = String(d.getDate()).padStart(2, '0');
-                                    setSelectedDate(`${year}-${month}-${day}`);
-                                }}>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => navigateDate(-1)}>
                                     <ChevronLeft className="w-5 h-5" />
                                 </Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => {
-                                    const d = new Date(selectedDate + "T12:00:00");
-                                    d.setDate(d.getDate() + 1);
-                                    const year = d.getFullYear();
-                                    const month = String(d.getMonth() + 1).padStart(2, '0');
-                                    const day = String(d.getDate()).padStart(2, '0');
-                                    setSelectedDate(`${year}-${month}-${day}`);
-                                }}>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => navigateDate(1)}>
                                     <ChevronRight className="w-5 h-5" />
                                 </Button>
                             </div>
@@ -233,6 +231,14 @@ export default function AgendamentosPage() {
 
                 {/* Content View */}
                 <div className="flex-1 overflow-hidden relative">
+                    {isLoading && (
+                        <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm">
+                            <div className="flex flex-col items-center gap-2">
+                                <div className="w-8 h-8 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
+                                <span className="text-sm text-slate-500">Carregando...</span>
+                            </div>
+                        </div>
+                    )}
                     {/* Render TimeGrid or Month View based on state */}
                     {view === "month" ? (
                         /* Reusing CalendarView for Month, but stripping its header logic internally or wrapping it */

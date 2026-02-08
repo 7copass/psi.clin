@@ -141,7 +141,8 @@ export function AppointmentDialog({
             const calculatedEndTime = data.end_time || calculateEndTime(data.start_time, defaultDuration);
 
             if (data.recurrence_type === "none") {
-                await createSession({
+                const formData = new FormData();
+                const sessionData = {
                     patient_id: data.patient_id,
                     session_date: data.session_date,
                     start_time: data.start_time,
@@ -150,7 +151,18 @@ export function AppointmentDialog({
                     session_type: data.session_type,
                     value: data.value,
                     notes: "",
+                };
+                Object.entries(sessionData).forEach(([key, value]) => {
+                    if (value !== undefined && value !== null) {
+                        formData.append(key, String(value));
+                    }
                 });
+                const result = await createSession(formData);
+                if (result.error) {
+                    toast.error(result.error);
+                    setIsLoading(false);
+                    return;
+                }
             } else {
                 if (!data.recurrence_end_date) {
                     toast.error("Selecione a data final da recorrência");
@@ -158,16 +170,21 @@ export function AppointmentDialog({
                     return;
                 }
 
-                await createRecurringSessions({
-                    patient_id: data.patient_id,
-                    start_date: data.session_date,
-                    original_start_time: data.start_time,
-                    original_end_time: calculatedEndTime,
-                    session_type: data.session_type,
+                const result = await createRecurringSessions({
+                    patientId: data.patient_id,
+                    startDate: data.session_date,
+                    startTime: data.start_time,
+                    endTime: calculatedEndTime,
+                    sessionType: data.session_type,
                     value: data.value,
-                    recurrence_type: data.recurrence_type,
-                    recurrence_end_date: data.recurrence_end_date,
+                    recurrenceType: data.recurrence_type as "weekly" | "biweekly" | "monthly",
+                    recurrenceEndDate: data.recurrence_end_date,
                 });
+                if (result.error) {
+                    toast.error(result.error);
+                    setIsLoading(false);
+                    return;
+                }
             }
 
             toast.success("Agendamento realizado com sucesso!");

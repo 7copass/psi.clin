@@ -130,6 +130,7 @@ export async function createSession(
         }
 
         revalidatePath("/sessoes");
+        revalidatePath("/agendamentos");
         revalidatePath(`/pacientes/${validated.patient_id}`);
         return { data: data as Session };
     } catch (err) {
@@ -313,22 +314,9 @@ export async function getSessionsByDateRange(
             return { error: "Não autenticado" };
         }
 
-        // Get professional's patients first
-        const { data: patients } = await supabase
-            .from("patients")
-            .select("id")
-            .eq("professional_id", user.id);
-
-        if (!patients || patients.length === 0) {
-            return { data: [] };
-        }
-
-        const patientIds = (patients as { id: string }[]).map((p) => p.id);
-
         const { data, error } = await supabase
             .from("sessions")
             .select("*, patients(id, full_name)")
-            .in("patient_id", patientIds)
             .gte("session_date", startDate)
             .lte("session_date", endDate)
             .order("session_date")
@@ -500,6 +488,7 @@ export async function createRecurringSessions(
             }
 
             return {
+                professional_id: user.id,
                 patient_id: params.patientId,
                 session_date: date,
                 start_time: params.startTime,
