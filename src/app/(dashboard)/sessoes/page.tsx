@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SessionList } from "./_components/session-list";
 import { SessionDialog } from "./_components/session-dialog";
 import type { Session, Patient } from "@/lib/types/database";
+import { getTodayDate, getCurrentMonth } from "@/lib/utils/date";
 
 export default async function SessoesPage() {
     const supabase = await createClient();
@@ -33,14 +34,17 @@ export default async function SessoesPage() {
     }
 
     // Agrupar sessões por status para estatísticas
-    const today = new Date().toISOString().split("T")[0];
+    // Agrupar sessões por status para estatísticas
+    // Usar timezone de Brasília para definir "hoje"
+    const today = getTodayDate();
+    const currentMonth = getCurrentMonth();
+
     const todaySessions = sessions.filter((s) => s.session_date === today);
     const upcomingSessions = sessions.filter(
         (s) => s.session_date > today && s.status !== "cancelled"
     );
     const completedThisMonth = sessions.filter((s) => {
         const sessionMonth = s.session_date.substring(0, 7);
-        const currentMonth = new Date().toISOString().substring(0, 7);
         return sessionMonth === currentMonth && s.status === "completed";
     });
 

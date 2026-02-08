@@ -43,7 +43,10 @@ export interface PatientContext {
 /**
  * Cria chat com contexto do paciente
  */
-export function createAssistantChat(patientContext?: PatientContext) {
+export function createAssistantChat(
+    patientContext?: PatientContext,
+    history?: { role: "user" | "model"; parts: { text: string }[] }[]
+) {
     let contextMessage = "";
 
     if (patientContext) {
@@ -62,12 +65,12 @@ Lembre-se: use este contexto para personalizar suas respostas, mas não invente 
 
     const model = getProModel({
         temperature: 0.6,
-        maxOutputTokens: 2048,
+        maxOutputTokens: 8192,
         systemInstruction: ASSISTANT_SYSTEM_INSTRUCTION + contextMessage,
     });
 
     return model.startChat({
-        history: [],
+        history: history || [],
     });
 }
 

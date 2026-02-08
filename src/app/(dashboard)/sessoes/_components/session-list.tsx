@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Calendar, Clock, User, Video, MapPin, MoreVertical, DollarSign } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,6 +19,7 @@ import {
 import { EmptyState } from "@/components/shared/empty-state";
 import { formatDate, formatCurrency } from "@/lib/utils/format";
 import { SESSION_STATUS, SESSION_TYPES, PAYMENT_STATUS } from "@/lib/utils/constants";
+import { updateSessionStatus } from "@/lib/actions/sessions";
 import type { Session } from "@/lib/types/database";
 
 interface SessionWithPatient extends Session {
@@ -96,14 +99,17 @@ export function SessionList({ sessions }: SessionListProps) {
     );
 }
 
+
 function SessionCard({ session }: { session: SessionWithPatient }) {
+    const router = useRouter();
+    const [isLoading, setIsLoading] = useState(false);
+
     const status = SESSION_STATUS[session.status as keyof typeof SESSION_STATUS];
     const sessionType = SESSION_TYPES[session.session_type as keyof typeof SESSION_TYPES];
     const paymentStatus = PAYMENT_STATUS[session.payment_status as keyof typeof PAYMENT_STATUS];
 
     // Helper to safely parse session_date (could be timestamp or date string)
     const getSessionDate = (dateValue: string): Date => {
-        // If it's a full timestamp, extract just the date part
         const dateString = dateValue.includes("T") ? dateValue.split("T")[0] : dateValue;
         return new Date(dateString + "T12:00:00");
     };
@@ -116,6 +122,52 @@ function SessionCard({ session }: { session: SessionWithPatient }) {
     const isPast = sessionDateString < today;
     const isToday = sessionDateString === today;
 
+    const handleCancelSession = async () => {
+        try {
+            setIsLoading(true);
+            const result = await updateSessionStatus(session.id, "cancelled");
+            if (result.error) {
+                toast.error(result.error);
+            } else {
+                toast.success("Sessão cancelada com sucesso");
+                router.refresh();
+            }
+        } catch (error) {
+            toast.error("Erro ao cancelar sessão");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleCompleteSession = async () => {
+        // Validation: Cannot complete before schedule time
+        if (session.start_time) {
+            const dateStr = session.session_date.split('T')[0];
+            const sessionDateTime = new Date(`${dateStr}T${session.start_time}:00`);
+            const now = new Date();
+
+            if (now < sessionDateTime) {
+                toast.error("Você não pode marcar como realizada antes do horário agendado");
+                return;
+            }
+        }
+
+        try {
+            setIsLoading(true);
+            const result = await updateSessionStatus(session.id, "completed");
+            if (result.error) {
+                toast.error(result.error);
+            } else {
+                toast.success("Sessão marcada como realizada");
+                router.refresh();
+            }
+        } catch (error) {
+            toast.error("Erro ao atualizar status");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
         <div
             className={`bg-white dark:bg-slate-800 rounded-xl border p-4 hover:shadow-md transition-shadow ${isToday ? "border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-900/10" : ""
@@ -125,7 +177,7 @@ function SessionCard({ session }: { session: SessionWithPatient }) {
                 <div className="flex items-center gap-4 flex-1 min-w-0">
                     {/* Date Badge */}
                     <div
-                        className={`flex flex-col items-center justify-center w-14 h-14 rounded-lg ${isToday
+                        className={`flex flex-col items-center justify-center w-14 h-14 rounded-lg shrink-0 ${isToday
                             ? "bg-purple-600 text-white"
                             : isPast
                                 ? "bg-slate-100 dark:bg-slate-700 text-slate-500"
@@ -135,7 +187,7 @@ function SessionCard({ session }: { session: SessionWithPatient }) {
                         <span className="text-xs font-medium uppercase">
                             {sessionDate.toLocaleDateString("pt-BR", {
                                 month: "short",
-                            })}
+                            }).replace(".", "")}
                         </span>
                         <span className="text-xl font-bold">
                             {sessionDate.getDate()}
@@ -178,9 +230,9 @@ function SessionCard({ session }: { session: SessionWithPatient }) {
                                 variant={status.color === "green" ? "default" : "secondary"}
                                 className={
                                     status.color === "green"
-                                        ? "bg-green-100 text-green-700"
+                                        ? "bg-green-100 text-green-700 hover:bg-green-100"
                                         : status.color === "red"
-                                            ? "bg-red-100 text-red-700"
+                                            ? "bg-red-100 text-red-700 hover:bg-red-100"
                                             : ""
                                 }
                             >
@@ -213,7 +265,7 @@ function SessionCard({ session }: { session: SessionWithPatient }) {
                 {/* Actions */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" disabled={isLoading}>
                             <MoreVertical className="h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
@@ -224,11 +276,22 @@ function SessionCard({ session }: { session: SessionWithPatient }) {
                         <DropdownMenuItem asChild>
                             <Link href={`/sessoes/${session.id}/editar`}>Editar</Link>
                         </DropdownMenuItem>
-                        {session.status !== "completed" && (
-                            <DropdownMenuItem>Marcar como realizada</DropdownMenuItem>
+                        {session.status !== "completed" && session.status !== "cancelled" && (
+                            <DropdownMenuItem onClick={handleCompleteSession}>
+                                Marcar como realizada
+                            </DropdownMenuItem>
                         )}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-600">Cancelar sessão</DropdownMenuItem>
+                        {session.status !== "cancelled" && (
+                            <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                                    onClick={handleCancelSession}
+                                >
+                                    Cancelar sessão
+                                </DropdownMenuItem>
+                            </>
+                        )}
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>

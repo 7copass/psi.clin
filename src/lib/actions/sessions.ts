@@ -35,13 +35,82 @@ export async function createSession(
 
         const patientData = patient as { id: string; session_value?: number };
 
+        // Buscar configurações do profissional
+        const { data: professionalData } = await supabase
+            .from("professionals")
+            .select("default_session_duration")
+            .eq("id", user.id)
+            .single();
+
+        const professional = professionalData as { default_session_duration: number } | null;
+
+        const defaultDuration = professional?.default_session_duration || 50;
+        const duration = validated.duration_minutes || defaultDuration;
+
+        // Calcular end_time se não fornecido
+        let endTime = validated.end_time;
+        if (!endTime && validated.start_time) {
+            const [hours, minutes] = validated.start_time.split(":").map(Number);
+            const startDate = new Date();
+            startDate.setHours(hours, minutes, 0, 0);
+            startDate.setMinutes(startDate.getMinutes() + duration);
+
+            endTime = startDate.toLocaleTimeString("pt-BR", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+            });
+        }
+
+        // Verificar conflitos de horário
+        if (validated.start_time) {
+            // Verificar se já existe sessão no mesmo horário
+            // Nota: Idealmente verificaríamos sobreposição de intervalos, mas por enquanto vamos verificar conflito direto de horário de início ou sobreposição básica
+            // start_time_new < end_time_existing AND end_time_new > start_time_existing
+
+            const { data: existingSessions } = await supabase
+                .from("sessions")
+                .select("start_time, end_time")
+                .eq("professional_id", user.id)
+                .eq("session_date", validated.session_date)
+                .neq("status", "cancelled")
+                .neq("status", "no_show");
+
+            const typedSessions = existingSessions as { start_time: string | null; end_time: string | null }[] | null;
+
+            const hasConflict = typedSessions?.some(session => {
+                if (!session.start_time || !validated.start_time || !endTime) return false;
+
+                // Converter para minutos para comparação
+                const getMinutes = (time: string) => {
+                    const [h, m] = time.split(":").map(Number);
+                    return h * 60 + m;
+                };
+
+                const startNew = getMinutes(validated.start_time);
+                const endNew = getMinutes(endTime);
+
+                const startExisting = getMinutes(session.start_time);
+                let endExisting = startExisting + 50; // Default fallback
+                if (session.end_time) {
+                    endExisting = getMinutes(session.end_time);
+                }
+
+                return startNew < endExisting && endNew > startExisting;
+            });
+
+            if (hasConflict) {
+                return { error: "Já existe um agendamento neste horário." };
+            }
+        }
+
         const insertData = {
             professional_id: user.id,
             patient_id: validated.patient_id,
             session_date: validated.session_date,
             start_time: validated.start_time || null,
-            end_time: validated.end_time || null,
-            duration_minutes: validated.duration_minutes || 50,
+            end_time: endTime || null,
+            duration_minutes: duration,
             session_type: validated.session_type || "in_person",
             status: validated.status || "scheduled",
             value: validated.value || patientData.session_value || 150,
@@ -401,18 +470,47 @@ export async function createRecurringSessions(
             }
         }
 
+        // Buscar configurações do profissional
+        const { data: professionalData } = await supabase
+            .from("professionals")
+            .select("default_session_duration")
+            .eq("id", user.id)
+            .single();
+
+        const professional = professionalData as { default_session_duration: number } | null;
+
+        const defaultDuration = professional?.default_session_duration || 50;
+        const duration = params.durationMinutes || defaultDuration;
+
         // Create sessions
-        const sessions = dates.map((date) => ({
-            patient_id: params.patientId,
-            session_date: date,
-            start_time: params.startTime,
-            end_time: params.endTime || null,
-            duration_minutes: params.durationMinutes || 50,
-            session_type: params.sessionType,
-            status: "scheduled",
-            value: params.value || patientData.session_value || 150,
-            payment_status: "pending",
-        }));
+        const sessions = dates.map((date) => {
+            // Calcular end_time se não fornecido
+            let endTime = params.endTime;
+            if (!endTime && params.startTime) {
+                const [hours, minutes] = params.startTime.split(":").map(Number);
+                const startDate = new Date();
+                startDate.setHours(hours, minutes, 0, 0);
+                startDate.setMinutes(startDate.getMinutes() + duration);
+
+                endTime = startDate.toLocaleTimeString("pt-BR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                });
+            }
+
+            return {
+                patient_id: params.patientId,
+                session_date: date,
+                start_time: params.startTime,
+                end_time: endTime || null,
+                duration_minutes: duration,
+                session_type: params.sessionType,
+                status: "scheduled",
+                value: params.value || patientData.session_value || 150,
+                payment_status: "pending",
+            };
+        });
 
         const { error } = await supabase
             .from("sessions")

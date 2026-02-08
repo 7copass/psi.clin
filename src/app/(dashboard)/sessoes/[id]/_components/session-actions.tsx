@@ -73,7 +73,7 @@ export function SessionActions({
     return (
         <>
             {/* Payment Button */}
-            {currentPaymentStatus !== "paid" && (
+            {currentPaymentStatus !== "paid" && currentStatus !== "cancelled" && (
                 <Button
                     className="w-full bg-green-600 hover:bg-green-700"
                     onClick={() => handlePaymentUpdate("paid")}
@@ -102,7 +102,7 @@ export function SessionActions({
                             Confirmar sessão
                         </Button>
                     )}
-                    {currentStatus !== "completed" && (
+                    {currentStatus !== "completed" && currentStatus !== "cancelled" && (
                         <Button
                             className="w-full bg-purple-600 hover:bg-purple-700"
                             onClick={() => handleStatusUpdate("completed")}

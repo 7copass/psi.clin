@@ -24,6 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 import { getPatients } from "@/lib/actions/patients";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
 
 interface Message {
     id: string;
@@ -84,12 +85,19 @@ export default function AssistentePage() {
         setStreamingContent("");
 
         try {
+            // Prepare history for Gemini (map roles)
+            const history = messages.map(m => ({
+                role: m.role === 'user' ? 'user' : 'model',
+                parts: [{ text: m.content }]
+            }));
+
             const response = await fetch("/api/ai/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     message: userMessage.content,
-                    patientId: selectedPatient || undefined,
+                    patientId: (selectedPatient && selectedPatient !== "no_patient") ? selectedPatient : undefined,
+                    history,
                 }),
             });
 
@@ -146,7 +154,7 @@ export default function AssistentePage() {
     };
 
     const selectedPatientName = patients.find(
-        (p) => p.id === selectedPatient
+        (p) => p.id === selectedPatient && selectedPatient !== "no_patient"
     )?.full_name;
 
     return (
@@ -169,7 +177,7 @@ export default function AssistentePage() {
                             <SelectValue placeholder="Selecionar paciente" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">Sem contexto de paciente</SelectItem>
+                            <SelectItem value="no_patient">Sem contexto de paciente</SelectItem>
                             {patients.map((patient) => (
                                 <SelectItem key={patient.id} value={patient.id}>
                                     {patient.full_name}
@@ -249,13 +257,19 @@ export default function AssistentePage() {
                             )}
                             <div
                                 className={cn(
-                                    "max-w-[70%] rounded-lg px-4 py-2",
+                                    "max-w-[85%] rounded-lg px-4 py-2",
                                     message.role === "user"
                                         ? "bg-purple-600 text-white"
                                         : "bg-slate-100 dark:bg-slate-700"
                                 )}
                             >
-                                <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+                                {message.role === "user" ? (
+                                    <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+                                ) : (
+                                    <div className="text-sm prose dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-li:my-0.5">
+                                        <ReactMarkdown>{message.content}</ReactMarkdown>
+                                    </div>
+                                )}
                             </div>
                             {message.role === "user" && (
                                 <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center shrink-0">
@@ -271,8 +285,10 @@ export default function AssistentePage() {
                             <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center shrink-0">
                                 <Bot className="h-5 w-5 text-purple-600" />
                             </div>
-                            <div className="max-w-[70%] rounded-lg px-4 py-2 bg-slate-100 dark:bg-slate-700">
-                                <p className="whitespace-pre-wrap text-sm">{streamingContent}</p>
+                            <div className="max-w-[85%] rounded-lg px-4 py-2 bg-slate-100 dark:bg-slate-700">
+                                <div className="text-sm prose dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-li:my-0.5">
+                                    <ReactMarkdown>{streamingContent}</ReactMarkdown>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -320,6 +336,6 @@ export default function AssistentePage() {
                     </p>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

@@ -82,21 +82,17 @@ export async function POST(request: NextRequest) {
                 age,
                 sessionsCount: sessionsList.length,
                 lastSessionDate: sessionsList[0]?.session_date,
-                recentNotes: sessionsList[0]?.notes?.slice(0, 500),
-                mainTopics: [...new Set(mainTopics)].slice(0, 5),
+                recentNotes: sessionsList
+                    .map(s => `[${new Date(s.session_date).toLocaleDateString('pt-BR')}] ${s.notes || "Sem anotações"}`)
+                    .join("\n\n"),
+                mainTopics: [...new Set(mainTopics)].slice(0, 10), // Aumentei para 10 tópicos já que temos mais contexto
             };
         }
     }
 
     try {
-        // Criar chat com contexto
-        const chat = createAssistantChat(patientContext);
-
-        // Restaurar histórico se existir
-        if (history && history.length > 0) {
-            // O Gemini SDK espera o histórico no formato específico
-            // Precisamos recriar o chat com o histórico
-        }
+        // Criar chat com contexto e histórico
+        const chat = createAssistantChat(patientContext, history);
 
         // Streaming response
         const encoder = new TextEncoder();
@@ -112,9 +108,20 @@ export async function POST(request: NextRequest) {
                         }
                     }
                     controller.close();
-                } catch (error) {
+                } catch (error: any) {
                     console.error("Chat stream error:", error);
-                    controller.error(error);
+
+                    // Tratamento amigável de erro de cota
+                    if (error.message?.includes("429") || error.status === 429) {
+                        const msg = "\n\n⚠️ **Limite de uso atingido.**\nO sistema de IA está sobrecarregado no momento (Muitas requisições). Por favor, aguarde alguns instantes e tente novamente.";
+                        controller.enqueue(encoder.encode(msg));
+                    } else {
+                        const msg = "\n\n❌ **Erro ao processar resposta.**\nTente novamente mais tarde.";
+                        controller.enqueue(encoder.encode(msg));
+                    }
+
+                    // Não fechar com erro para o cliente poder ler a mensagem acima
+                    controller.close();
                 }
             },
         });

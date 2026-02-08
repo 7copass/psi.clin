@@ -13,6 +13,7 @@ import { SessionHeaderActions } from "./_components/session-header-actions";
 import { SessionNotes } from "./_components/session-notes";
 import { AudioManager } from "./editar/_components/audio-manager";
 import type { SmartNotes } from "@/lib/gemini/smartnotes";
+import { getTodayDate } from "@/lib/utils/date";
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -44,7 +45,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
     const sessionType = SESSION_TYPES[session.session_type as keyof typeof SESSION_TYPES];
     const paymentStatus = PAYMENT_STATUS[session.payment_status as keyof typeof PAYMENT_STATUS];
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = getTodayDate();
     // Extract date part from session_date (handles timestamp format)
     const sessionDatePart = session.session_date.includes("T")
         ? session.session_date.split("T")[0]

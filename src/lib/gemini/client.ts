@@ -24,7 +24,9 @@ export function getProModel(config?: {
     responseMimeType?: "application/json" | "text/plain";
 }) {
     return genAI.getGenerativeModel({
-        model: "gemini-2.5-pro",
+        // Usar 2.5-flash como fallback do Pro para evitar Rate Limits do 2.5-pro no tier gratuito
+        // O 1.5 não está disponível nesta env.
+        model: "gemini-2.5-flash",
         generationConfig: {
             responseMimeType: config?.responseMimeType ?? "text/plain",
             temperature: config?.temperature ?? 0.5,
