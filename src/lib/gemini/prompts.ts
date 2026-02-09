@@ -18,16 +18,16 @@ REGRAS:
 - Se o áudio tiver partes inaudíveis, indique com [inaudível]`;
 
 export function buildSmartNotesPrompt(
-    transcription: string,
-    size: "curto" | "medio" | "longo"
+  transcription: string,
+  size: "curto" | "medio" | "longo"
 ): string {
-    const sizeDescription = {
-        curto: "2-3 tópicos principais",
-        medio: "5-7 tópicos",
-        longo: "8+ tópicos com maior profundidade",
-    };
+  const sizeDescription = {
+    curto: "2-3 tópicos principais",
+    medio: "5-7 tópicos",
+    longo: "8+ tópicos com maior profundidade",
+  };
 
-    return `Você é um assistente clínico especializado em psicologia.
+  return `Você é um assistente clínico especializado em psicologia.
 Analise a transcrição de sessão terapêutica a seguir e gere um resumo estruturado.
 
 REGRAS:
@@ -63,16 +63,16 @@ Responda apenas com o JSON válido, sem markdown nem explicações.`;
 }
 
 export function buildEvolutionPrompt(context: {
-    patientName: string;
-    professionalName: string;
-    crp: string;
-    sessionDate: string;
-    sessionType: string;
-    notes?: string;
-    transcription?: string;
-    smartnotes?: string;
+  patientName: string;
+  professionalName: string;
+  crp: string;
+  sessionDate: string;
+  sessionType: string;
+  notes?: string;
+  transcription?: string;
+  smartnotes?: string;
 }): string {
-    return `Você é um assistente clínico que gera Fichas de Evolução para prontuários psicológicos.
+  return `Você é um assistente clínico que gera Fichas de Evolução para prontuários psicológicos.
 
 DADOS DO CONTEXTO:
 - Paciente: ${context.patientName}
@@ -91,6 +91,8 @@ REGRAS:
 - Linguagem profissional clínica, em terceira pessoa
 - Nunca invente informações que não estejam nas fontes
 - Não faça diagnósticos
+- Use tags HTML <b> ou <strong> para destacar termos importantes.
+- Separe parágrafos com quebras de linha (\n).
 
 FORMATO DE SAÍDA (JSON):
 {
@@ -108,13 +110,13 @@ Responda apenas com o JSON válido.`;
 }
 
 export function buildConsolidatedSummaryPrompt(context: {
-    patientName: string;
-    totalSessions: number;
-    firstSessionDate: string;
-    lastSessionDate: string;
-    sessionsHistory: string;
+  patientName: string;
+  totalSessions: number;
+  firstSessionDate: string;
+  lastSessionDate: string;
+  sessionsHistory: string;
 }): string {
-    return `Você é um assistente clínico especializado em psicologia.
+  return `Você é um assistente clínico especializado em psicologia.
 Analise o histórico completo de sessões do paciente e gere um resumo consolidado.
 
 DADOS:
@@ -148,3 +150,30 @@ REGRAS:
 
 Responda apenas com o JSON válido.`;
 }
+
+export function buildReorganizePrompt(notes: string): string {
+  return `Você é um assistente clínico especializado em organização de anotações psicológicas.
+Sua tarefa é REORGANIZAR e FORMATAR as anotações do terapeuta, tornando-as mais claras e estruturadas, SEM alterar o sentido original ou adicionar informações.
+
+ANOTAÇÕES ORIGINAIS:
+${notes}
+
+REGRAS:
+- Mantenha a essência de todas as informações.
+- Use listas (bullet points) para listar sintomas, queixas ou observações.
+- Use **negrito** para destacar palavras-chave importantes.
+- Corrija erros ortográficos óbvios e digitação.
+- Separe em parágrafos lógicos.
+- Mantenha o tom profissional.
+- Retorne APENAS o conteúdo HTML formatado (pode usar <ul>, <li>, <p>, <strong>), sem tags <html> ou <body>, pronto para ser inserido em um editor de texto.`;
+}
+
+export const OCR_PROMPT = `Transcreva o texto manuscrito nesta imagem para texto digital.
+O texto provavelmente contém anotações de uma sessão de terapia psicológica.
+
+REGRAS:
+- Mantenha fidelidade total ao que está escrito.
+- Se houver rasuras, ignore-as se possível ou indique [rasura].
+- Se uma palavra for ilegível, indique [ilegível].
+- Mantenha a formatação de parágrafos e listas se houver.
+- Retorne APENAS o texto transcrito, sem introduções ou comentários.`;

@@ -120,6 +120,7 @@ export function AnamneseForm({ patientId, initialData }: AnamneseFormProps) {
         initialData || defaultContent
     );
     const [isPending, startTransition] = useTransition();
+    const [isStarted, setIsStarted] = useState(!!initialData);
 
     const handleChange = (key: keyof AnamneseContent, value: string) => {
         setContent((prev) => ({ ...prev, [key]: value }));
@@ -135,6 +136,30 @@ export function AnamneseForm({ patientId, initialData }: AnamneseFormProps) {
             }
         });
     };
+
+    if (!isStarted) {
+        return (
+            <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
+                <div className="bg-purple-100 dark:bg-purple-900/30 p-4 rounded-full">
+                    <FileText className="h-8 w-8 text-purple-600" />
+                </div>
+                <div className="space-y-2 max-w-md">
+                    <h3 className="text-lg font-semibold">Nenhuma anamnese registrada</h3>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm">
+                        A anamnese é fundamental para o acompanhamento do paciente.
+                        Clique abaixo para iniciar o preenchimento.
+                    </p>
+                </div>
+                <Button
+                    onClick={() => setIsStarted(true)}
+                    className="bg-purple-600 hover:bg-purple-700 mt-4"
+                >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Iniciar Anamnese
+                </Button>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">

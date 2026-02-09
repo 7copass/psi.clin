@@ -373,6 +373,37 @@ export interface Database {
                     updated_at?: string;
                 };
             };
+            evolucoes_consolidadas: {
+                Row: {
+                    id: string;
+                    patient_id: string;
+                    professional_id: string;
+                    titulo: string;
+                    periodo_inicio: string;
+                    periodo_fim: string;
+                    sessoes_incluidas: string[];
+                    conteudo_json: Json;
+                    created_at: string;
+                    updated_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    patient_id: string;
+                    professional_id: string;
+                    titulo: string;
+                    periodo_inicio: string;
+                    periodo_fim: string;
+                    sessoes_incluidas: string[];
+                    conteudo_json: Json;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+                Update: {
+                    titulo?: string;
+                    conteudo_json?: Json;
+                    updated_at?: string;
+                };
+            };
             assistant_messages: {
                 Row: {
                     id: string;
@@ -441,3 +472,4 @@ export type PatientSummary = Tables<"patient_summaries">;
 export type Subscription = Tables<"subscriptions">;
 export type AssistantChat = Tables<"assistant_chats">;
 export type AssistantMessage = Tables<"assistant_messages">;
+export type EvolucaoConsolidada = Tables<"evolucoes_consolidadas">;

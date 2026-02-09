@@ -39,6 +39,9 @@ export default function EditSessionPage({ params }: PageProps) {
 
     const notesRef = useRef(notes);
     const evolutionRef = useRef(evolution);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isReorganizing, setIsReorganizing] = useState(false);
+    const [isTranscribing, setIsTranscribing] = useState(false);
 
     // Fetch session data
     useEffect(() => {
@@ -120,6 +123,77 @@ export default function EditSessionPage({ params }: PageProps) {
         toast.success("Salvo com sucesso");
     };
 
+    // AI Reorganize Handler
+    const handleReorganize = async () => {
+        if (!notes.trim()) {
+            toast.error("Digite algo para reorganizar");
+            return;
+        }
+
+        setIsReorganizing(true);
+        try {
+            const response = await fetch("/api/ai/reorganize", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ notes }),
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error);
+
+            setNotes(data.formattedNotes);
+            notesRef.current = data.formattedNotes;
+            setHasUnsavedChanges(true);
+            toast.success("Texto reorganizado com sucesso!");
+        } catch (error) {
+            console.error(error);
+            toast.error("Erro ao reorganizar texto");
+        } finally {
+            setIsReorganizing(false);
+        }
+    };
+
+    // AI Transcribe Handler
+    const handleTranscribeClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsTranscribing(true);
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const response = await fetch("/api/ai/transcribe", {
+                method: "POST",
+                body: formData,
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error);
+
+            const newContent = notes
+                ? `${notes}<br><br><strong>[Transcrição de Anexo]:</strong><br>${data.transcription}`
+                : `<strong>[Transcrição de Anexo]:</strong><br>${data.transcription}`;
+
+            setNotes(newContent);
+            notesRef.current = newContent;
+            setHasUnsavedChanges(true);
+            toast.success("Manuscrito transcrito com sucesso!");
+        } catch (error) {
+            console.error(error);
+            toast.error("Erro ao transcrever imagem");
+        } finally {
+            setIsTranscribing(false);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
+        }
+    };
+
     if (!session) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
@@ -195,12 +269,22 @@ export default function EditSessionPage({ params }: PageProps) {
                         <p className="text-sm text-slate-500">
                             Registre suas observações e notas sobre a sessão.
                         </p>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            accept="image/*"
+                            onChange={handleFileChange}
+                        />
                         <RichTextEditor
                             content={notes}
                             onChange={handleNotesChange}
                             placeholder="Digite suas anotações sobre a sessão..."
                             minHeight="400px"
                             autoFocus
+                            onReorganize={handleReorganize}
+                            onTranscribe={handleTranscribeClick}
+                            isAIProcessing={isReorganizing || isTranscribing}
                         />
                     </div>
                 </TabsContent>
@@ -220,7 +304,10 @@ export default function EditSessionPage({ params }: PageProps) {
                                         const response = await fetch("/api/ai/evolution", {
                                             method: "POST",
                                             headers: { "Content-Type": "application/json" },
-                                            body: JSON.stringify({ sessionId: id }),
+                                            body: JSON.stringify({
+                                                sessionId: id,
+                                                currentNotes: notes
+                                            }),
                                         });
                                         const data = await response.json();
                                         if (!response.ok) throw new Error(data.error);

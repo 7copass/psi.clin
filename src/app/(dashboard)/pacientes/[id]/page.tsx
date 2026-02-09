@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Edit, Phone, Mail, Calendar, MapPin, CreditCard, FileText, User } from "lucide-react";
+import { ArrowLeft, Edit, Phone, CreditCard, FileText, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -15,6 +15,9 @@ import { getAnamnese, type AnamneseContent } from "@/lib/actions/anamnese";
 import { getDocuments } from "@/lib/actions/documents";
 import { DocumentUpload } from "./_components/document-upload";
 import { DocumentList } from "./_components/document-list";
+import { SessionsTab } from "./_components/sessions-tab";
+import { EvolucaoConsolidadaTab } from "./_components/evolucao-consolidada-tab";
+import { ResumoPsiClinTab } from "./_components/resumo-psi-clin-tab";
 
 interface Document {
     id: string;
@@ -48,15 +51,24 @@ export default async function PatientDetailPage({ params }: PageProps) {
 
     const patient = patientData as Patient;
 
-    // Buscar sessões do paciente
+    // Buscar sessões do paciente (todas)
     const { data: sessionsData } = await supabase
         .from("sessions")
         .select("*")
         .eq("patient_id", id)
-        .order("session_date", { ascending: false })
-        .limit(10);
+        .order("session_date", { ascending: false });
 
     const sessions = (sessionsData as Session[]) || [];
+
+    // Buscar dados do profissional
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+    const { data: professionalData } = await supabase
+        .from("professionals")
+        .select("full_name, crp")
+        .eq("id", user?.id ?? "")
+        .single() as { data: { full_name: string; crp: string } | null };
 
     // Buscar anamnese
     const { data: anamneseData } = await getAnamnese(id);
@@ -122,6 +134,8 @@ export default async function PatientDetailPage({ params }: PageProps) {
                 <TabsList>
                     <TabsTrigger value="info">Informações</TabsTrigger>
                     <TabsTrigger value="sessions">Sessões ({sessions.length})</TabsTrigger>
+                    <TabsTrigger value="evolucao-consolidada">Evolução Consolidada</TabsTrigger>
+                    <TabsTrigger value="resumo-psi">Resumo PSI.CLIN</TabsTrigger>
                     <TabsTrigger value="anamnese">Anamnese</TabsTrigger>
                     <TabsTrigger value="documents">Documentos</TabsTrigger>
                 </TabsList>
@@ -266,46 +280,30 @@ export default async function PatientDetailPage({ params }: PageProps) {
 
                 {/* Tab Sessões */}
                 <TabsContent value="sessions">
-                    <div className="bg-white dark:bg-slate-800 rounded-xl border p-6">
-                        {sessions.length > 0 ? (
-                            <div className="space-y-4">
-                                {sessions.map((session) => (
-                                    <Link
-                                        key={session.id}
-                                        href={`/sessoes/${session.id}`}
-                                        className="flex items-center justify-between p-4 rounded-lg border hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-                                    >
-                                        <div>
-                                            <p className="font-medium">{formatDate(session.session_date)}</p>
-                                            <p className="text-sm text-slate-500">
-                                                {session.session_type === "online" ? "Online" : "Presencial"}
-                                            </p>
-                                        </div>
-                                        <div className="text-right">
-                                            <Badge
-                                                variant={session.status === "completed" ? "default" : "secondary"}
-                                                className={session.status === "completed" ? "bg-green-100 text-green-700" : ""}
-                                            >
-                                                {session.status === "completed" ? "Realizada" : session.status}
-                                            </Badge>
-                                            {session.value && (
-                                                <p className="text-sm text-slate-500 mt-1">{formatCurrency(session.value)}</p>
-                                            )}
-                                        </div>
-                                    </Link>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-center py-12 text-slate-500">
-                                <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                                <p className="font-medium">Nenhuma sessão registrada</p>
-                                <p className="text-sm mt-1">Agende a primeira sessão com este paciente</p>
-                                <Button className="mt-4 bg-purple-600 hover:bg-purple-700" asChild>
-                                    <Link href={`/sessoes/nova?paciente=${id}`}>Nova Sessão</Link>
-                                </Button>
-                            </div>
-                        )}
-                    </div>
+                    <SessionsTab
+                        sessions={sessions}
+                        patient={patient}
+                        professionalName={professionalData?.full_name ?? ""}
+                        professionalCrp={professionalData?.crp ?? ""}
+                    />
+                </TabsContent>
+
+                {/* Tab Evolução Consolidada */}
+                <TabsContent value="evolucao-consolidada">
+                    <EvolucaoConsolidadaTab
+                        patientId={id}
+                        patientName={patient.full_name}
+                        sessions={sessions}
+                    />
+                </TabsContent>
+
+                {/* Tab Resumo PSI.CLIN */}
+                <TabsContent value="resumo-psi">
+                    <ResumoPsiClinTab
+                        patientId={id}
+                        patientName={patient.full_name}
+                        sessions={sessions}
+                    />
                 </TabsContent>
 
                 {/* Tab Anamnese */}

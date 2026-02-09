@@ -1,16 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Edit, Calendar, Clock, Video, MapPin, DollarSign, FileText, Mic } from "lucide-react";
+import { ArrowLeft, Calendar, Video, MapPin, DollarSign, Mic, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDate, formatCurrency } from "@/lib/utils/format";
 import { SESSION_STATUS, SESSION_TYPES, PAYMENT_STATUS } from "@/lib/utils/constants";
 import type { Session, Patient } from "@/lib/types/database";
 import { SessionActions } from "./_components/session-actions";
 import { SessionHeaderActions } from "./_components/session-header-actions";
 import { SessionNotes } from "./_components/session-notes";
+import { SessionEvolution } from "./_components/session-evolution";
 import { AudioManager } from "./editar/_components/audio-manager";
 import type { SmartNotes } from "@/lib/gemini/smartnotes";
 import { getTodayDate } from "@/lib/utils/date";
@@ -40,6 +42,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
 
     const session = sessionData as SessionWithPatient;
     const patient = session.patients;
+    const smartNotes = session.smartnotes as unknown as SmartNotes | null;
 
     const status = SESSION_STATUS[session.status as keyof typeof SESSION_STATUS];
     const sessionType = SESSION_TYPES[session.session_type as keyof typeof SESSION_TYPES];
@@ -134,8 +137,42 @@ export default async function SessionDetailPage({ params }: PageProps) {
                         </div>
                     </div>
 
-                    {/* Notes */}
-                    <SessionNotes sessionId={session.id} initialNotes={session.notes} />
+                    {/* Smart Notes Topics - Display if available */}
+                    {smartNotes && smartNotes.mapa_topicos && (
+                        <div className="bg-purple-50 dark:bg-purple-900/10 rounded-xl border border-purple-100 dark:border-purple-900/30 p-6 space-y-3">
+                            <h3 className="text-base font-semibold flex items-center gap-2 text-purple-900 dark:text-purple-100">
+                                <Sparkles className="h-4 w-4 text-purple-600" />
+                                Mapa de Tópicos (IA)
+                            </h3>
+                            <div className="flex flex-wrap gap-2">
+                                {smartNotes.mapa_topicos.map((topic, i) => (
+                                    <Badge key={i} variant="outline" className="bg-white dark:bg-slate-800 border-purple-200 text-purple-700 dark:text-purple-300">
+                                        {topic}
+                                    </Badge>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Tabs for Notes and Evolution */}
+                    <Tabs defaultValue="notes" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2 mb-4">
+                            <TabsTrigger value="notes">Anotações</TabsTrigger>
+                            <TabsTrigger value="evolution">Prontuário</TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="notes" className="mt-0">
+                            <SessionNotes sessionId={session.id} initialNotes={session.notes} />
+                        </TabsContent>
+
+                        <TabsContent value="evolution" className="mt-0">
+                            <SessionEvolution
+                                sessionId={session.id}
+                                initialEvolution={session.evolution}
+                                initialNotes={session.notes}
+                            />
+                        </TabsContent>
+                    </Tabs>
 
                     {/* Audio Recordings */}
                     <div className="bg-white dark:bg-slate-800 rounded-xl border p-6 space-y-4">

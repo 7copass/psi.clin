@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { FileText, Loader2, Save, X } from "lucide-react";
+import { FileText, Loader2, Save, X, Edit2 } from "lucide-react";
 import { toast } from "sonner";
 import { updateSessionNotes } from "@/lib/actions/sessions";
+import { RichTextEditor } from "@/components/shared/rich-text-editor";
 
 interface SessionNotesProps {
     sessionId: string;
@@ -17,7 +17,15 @@ interface SessionNotesProps {
 export function SessionNotes({ sessionId, initialNotes }: SessionNotesProps) {
     const router = useRouter();
     const [isEditing, setIsEditing] = useState(false);
-    const [notes, setNotes] = useState(initialNotes || "");
+
+    // Helper to process markdown-style bolding
+    const formatContent = (content: string | null) => {
+        if (!content) return "";
+        // Replace **text** with <strong>text</strong>
+        return content.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+    };
+
+    const [notes, setNotes] = useState(formatContent(initialNotes));
     const [isLoading, setIsLoading] = useState(false);
 
     const handleSave = async () => {
@@ -39,9 +47,12 @@ export function SessionNotes({ sessionId, initialNotes }: SessionNotesProps) {
     };
 
     const handleCancel = () => {
-        setNotes(initialNotes || "");
+        setNotes(formatContent(initialNotes));
         setIsEditing(false);
     };
+
+    // Ensure content passed to editor is formatted
+    const formattedNotes = useMemo(() => formatContent(notes), [notes]);
 
     return (
         <div className="bg-white dark:bg-slate-800 rounded-xl border p-6 space-y-4">
@@ -50,7 +61,7 @@ export function SessionNotes({ sessionId, initialNotes }: SessionNotesProps) {
                     <FileText className="h-5 w-5 text-purple-600" />
                     Anotações da Sessão
                 </h3>
-                {isEditing && (
+                {isEditing ? (
                     <div className="flex gap-2">
                         <Button
                             size="sm"
@@ -73,37 +84,57 @@ export function SessionNotes({ sessionId, initialNotes }: SessionNotesProps) {
                             )}
                         </Button>
                     </div>
+                ) : (
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setIsEditing(true)}
+                        className="text-slate-500 hover:text-purple-600"
+                    >
+                        <Edit2 className="h-4 w-4" />
+                    </Button>
                 )}
             </div>
             <Separator />
-            {isEditing ? (
-                <Textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Digite suas anotações sobre a sessão..."
-                    className="min-h-[200px] resize-none"
-                    autoFocus
-                />
-            ) : notes ? (
-                <div
-                    className="text-slate-600 dark:text-slate-400 whitespace-pre-wrap cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 p-3 rounded-lg transition-colors"
-                    onClick={() => setIsEditing(true)}
-                >
-                    {notes}
-                </div>
-            ) : (
-                <div className="text-center py-8 text-slate-500">
-                    <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Nenhuma anotação registrada</p>
-                    <Button
-                        variant="outline"
-                        className="mt-4"
-                        onClick={() => setIsEditing(true)}
-                    >
-                        Adicionar anotações
-                    </Button>
-                </div>
-            )}
+
+            <div className={isEditing ? "" : notes ? "prose prose-sm max-w-none dark:prose-invert" : ""}>
+                {isEditing ? (
+                    <RichTextEditor
+                        content={notes}
+                        onChange={setNotes}
+                        placeholder="Digite suas anotações sobre a sessão..."
+                        minHeight="300px"
+                        autoFocus
+                    />
+                ) : notes ? (
+                    <div className="relative group">
+                        {/* Render read-only editor for consistent HTML display */}
+                        <RichTextEditor
+                            content={notes}
+                            editable={false}
+                            className="border-0 bg-transparent"
+                            minHeight="auto"
+                        />
+                        {/* Overlay to encourage clicking to edit */}
+                        <div
+                            className="absolute inset-0 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity bg-slate-50/10 dark:bg-slate-800/10 flex items-center justify-center pointer-events-none"
+                        >
+                        </div>
+                    </div>
+                ) : (
+                    <div className="text-center py-8 text-slate-500">
+                        <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>Nenhuma anotação registrada</p>
+                        <Button
+                            variant="outline"
+                            className="mt-4"
+                            onClick={() => setIsEditing(true)}
+                        >
+                            Adicionar anotações
+                        </Button>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

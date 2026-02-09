@@ -17,6 +17,9 @@ import {
     Undo,
     Redo,
     RemoveFormatting,
+    Wand2,
+    ImagePlus,
+    Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Toggle } from "@/components/ui/toggle";
@@ -30,9 +33,12 @@ import {
 
 interface EditorToolbarProps {
     editor: Editor | null;
+    onReorganize?: () => void;
+    onTranscribe?: () => void;
+    isAIProcessing?: boolean;
 }
 
-export function EditorToolbar({ editor }: EditorToolbarProps) {
+export function EditorToolbar({ editor, onReorganize, onTranscribe, isAIProcessing }: EditorToolbarProps) {
     if (!editor) return null;
 
     return (
@@ -176,6 +182,35 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
             >
                 <RemoveFormatting className="h-4 w-4" />
             </Toggle>
+            <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1" />
+
+            {/* AI Features */}
+            {onReorganize && (
+                <Toggle
+                    size="sm"
+                    onClick={onReorganize}
+                    disabled={isAIProcessing}
+                    className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                    title="Reorganizar Texto (IA)"
+                >
+                    {isAIProcessing ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                        <Wand2 className="h-4 w-4" />
+                    )}
+                </Toggle>
+            )}
+            {onTranscribe && (
+                <Toggle
+                    size="sm"
+                    onClick={onTranscribe}
+                    disabled={isAIProcessing}
+                    className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                    title="Transcrever Manuscrito (OCR)"
+                >
+                    <ImagePlus className="h-4 w-4" />
+                </Toggle>
+            )}
         </div>
     );
 }
