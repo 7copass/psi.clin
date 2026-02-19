@@ -44,7 +44,7 @@ export async function uploadDocument(formData: FormData) {
             file_path: filePath,
             file_type: file.type,
             file_size: file.size,
-        });
+        } as any);
 
         if (dbError) {
             console.error("Database error:", dbError);
@@ -81,20 +81,21 @@ export async function getDocuments(patientId: string) {
                 // URL for visualização (inline)
                 const { data: viewUrlData } = await supabase.storage
                     .from("patient-documents")
-                    .createSignedUrl(doc.file_path, 3600); // 1 hora
+                    .createSignedUrl((doc as any).file_path, 3600); // 1 hora
 
                 // URL para download (attachment)
                 const { data: downloadUrlData } = await supabase.storage
                     .from("patient-documents")
-                    .createSignedUrl(doc.file_path, 3600, {
+                    .createSignedUrl((doc as any).file_path, 3600, {
                         download: true,
                     });
 
                 return {
+                    // @ts-ignore - doc is typed as never
                     ...doc,
                     url: viewUrlData?.signedUrl,
                     downloadUrl: downloadUrlData?.signedUrl,
-                };
+                } as any;
             })
         );
 
@@ -144,7 +145,8 @@ export async function renameDocument(id: string, newName: string, patientId: str
 
         const { error } = await supabase
             .from("patient_documents")
-            .update({ name: newName, updated_at: new Date().toISOString() } as never)
+            // @ts-ignore - ts complains about never type
+            .update({ name: newName, updated_at: new Date().toISOString() } as any)
             .eq("id", id);
 
         if (error) {

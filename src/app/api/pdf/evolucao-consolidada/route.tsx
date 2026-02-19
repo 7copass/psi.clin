@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
             .from("patients")
             .select("full_name")
             .eq("id", evolucao.patient_id)
-            .single();
+            .single<{ full_name: string }>();
 
         const patientName = patient?.full_name || "Paciente";
 

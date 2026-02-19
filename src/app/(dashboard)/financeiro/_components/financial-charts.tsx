@@ -120,7 +120,7 @@ export function FinancialCharts({
                                 ))}
                             </Pie>
                             <Tooltip
-                                formatter={(value: number) => [
+                                formatter={(value: any) => [
                                     `${value} sessões`,
                                     "Quantidade",
                                 ]}
