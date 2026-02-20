@@ -166,7 +166,7 @@ export default async function AssinaturaPage({
 
                             <div className="mb-4">
                                 <span className="text-3xl font-bold">
-                                    {plan.price === 0 ? "Grátis" : `R$ ${plan.price}`}
+                                    {plan.price === 0 ? "Grátis" : `R$ ${plan.price.toFixed(2).replace('.', ',')}`}
                                 </span>
                                 {plan.price > 0 && (
                                     <span className="text-slate-500">/mês</span>
