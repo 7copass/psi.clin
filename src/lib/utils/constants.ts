@@ -1,19 +1,19 @@
 // Planos disponíveis
 export const PLANS = {
-    free: {
-        name: "Gratuito",
+    trial: {
+        name: "Trial (14 dias)",
         price: 0,
         features: {
-            patients: 5,
-            transcriptions: 3,
-            smartnotes: 3,
-            summaries: 0,
+            patients: 50,
+            transcriptions: 40,
+            smartnotes: -1, // ilimitado
+            summaries: 5,
             assistant: 0,
         },
     },
     essential: {
         name: "Essencial",
-        price: 97,
+        price: 59.90,
         features: {
             patients: 50,
             transcriptions: 40, // ~10h
@@ -24,7 +24,7 @@ export const PLANS = {
     },
     professional: {
         name: "Profissional",
-        price: 197,
+        price: 79.90,
         features: {
             patients: -1, // ilimitado
             transcriptions: 120, // ~30h
@@ -35,7 +35,7 @@ export const PLANS = {
     },
     clinic: {
         name: "Clínica",
-        price: 397,
+        price: 99.90,
         features: {
             patients: -1,
             transcriptions: -1,

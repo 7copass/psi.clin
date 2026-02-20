@@ -40,8 +40,8 @@ export async function createBilling(params: CreateBillingParams) {
  */
 export function getPlanPrices() {
     return {
-        essential: 4990, // R$ 49,90 = 4990 centavos
-        professional: 9990, // R$ 99,90 = 9990 centavos
-        clinic: 19990, // R$ 199,90 = 19990 centavos
+        essential: 5990, // R$ 59,90 = 5990 centavos
+        professional: 7990, // R$ 79,90 = 7990 centavos
+        clinic: 9990, // R$ 99,90 = 9990 centavos
     };
 }

@@ -24,48 +24,55 @@ export default async function AssinaturaPage({
     }
 
     const subscription = await getSubscription(user.id);
-    const currentPlan = subscription?.plan || "free";
+    const currentPlan = subscription?.plan && subscription.plan !== "free" ? subscription.plan : "trial";
     const status = subscription?.status || "active";
 
     const plans = [
         {
-            key: "free",
-            name: "Gratuito",
+            key: "trial",
+            name: "Trial",
             price: 0,
+            tagline: "14 dias grátis — Acesso completo ao Plano Essencial sem necessidade de cartão.",
             icon: Sparkles,
             features: [
-                "5 pacientes",
-                "3 transcrições/mês",
-                "3 SmartNotes/mês",
-                "Editor de notas",
+                "Até 50 pacientes",
+                "40 transcrições/mês (~10h)",
+                "SmartNotes ilimitado",
+                "5 Resumos Consolidados/mês",
+                "Ficha de Evolução com IA",
+                "Editor de notas clínicas",
             ],
             featured: false,
         },
         {
             key: "essential",
             name: "Essencial",
-            price: 97,
+            price: 59.90,
+            tagline: "Para psicólogos que estão começando a organizar sua prática clínica.",
             icon: Sparkles,
             features: [
-                "50 pacientes",
+                "Até 50 pacientes",
                 "40 transcrições/mês (~10h)",
                 "SmartNotes ilimitado",
-                "5 Resumos Consolidados",
-                "Ficha de Evolução IA",
+                "5 Resumos Consolidados/mês",
+                "Ficha de Evolução com IA",
+                "Editor de notas clínicas",
             ],
             featured: false,
         },
         {
             key: "professional",
             name: "Profissional",
-            price: 197,
+            price: 79.90,
+            tagline: "Para psicólogos que querem automatizar sua agenda e focar no que importa.",
             icon: Crown,
             features: [
                 "Pacientes ilimitados",
                 "120 transcrições/mês (~30h)",
                 "SmartNotes ilimitado",
-                "Resumos ilimitados",
-                "100 mensagens/mês Assistente IA",
+                "Resumos Consolidados ilimitados",
+                "Ficha de Evolução com IA",
+                "Avisos automáticos via WhatsApp",
                 "Suporte prioritário",
             ],
             featured: true,
@@ -73,7 +80,8 @@ export default async function AssinaturaPage({
         {
             key: "clinic",
             name: "Clínica",
-            price: 397,
+            price: 99.90,
+            tagline: "Para clínicas e equipes que precisam de controle total em um só lugar.",
             icon: Building2,
             features: [
                 "Tudo do Profissional",
@@ -81,7 +89,7 @@ export default async function AssinaturaPage({
                 "Assistente IA ilimitado",
                 "Multi-profissionais",
                 "Gestão de equipe",
-                "API personalizada",
+                "Avisos WhatsApp ilimitados",
             ],
             featured: false,
         },
@@ -117,7 +125,7 @@ export default async function AssinaturaPage({
             )}
 
             {/* Current plan */}
-            {currentPlan !== "free" && (
+            {currentPlan !== "trial" && (
                 <div className="bg-white dark:bg-slate-800 rounded-xl border p-6">
                     <div className="flex items-center justify-between">
                         <div>
@@ -149,8 +157,8 @@ export default async function AssinaturaPage({
                         <div
                             key={plan.key}
                             className={`relative bg-white dark:bg-slate-800 rounded-xl border p-6 ${plan.featured
-                                    ? "border-purple-500 ring-2 ring-purple-500/20"
-                                    : ""
+                                ? "border-purple-500 ring-2 ring-purple-500/20"
+                                : ""
                                 } ${isCurrentPlan ? "bg-purple-50 dark:bg-purple-900/10" : ""}`}
                         >
                             {plan.featured && (
@@ -159,12 +167,18 @@ export default async function AssinaturaPage({
                                 </Badge>
                             )}
 
-                            <div className="flex items-center gap-2 mb-4">
+                            <div className="flex items-center gap-2 mb-2">
                                 <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
                                     <Icon className="h-5 w-5 text-purple-600" />
                                 </div>
-                                <h3 className="font-semibold">{plan.name}</h3>
+                                <h3 className="font-bold text-lg">{plan.name}</h3>
                             </div>
+
+                            {plan.tagline && (
+                                <p className="text-xs text-slate-500 mb-4 min-h-[40px]">
+                                    {plan.tagline}
+                                </p>
+                            )}
 
                             <div className="mb-4">
                                 <span className="text-3xl font-bold">
@@ -184,13 +198,13 @@ export default async function AssinaturaPage({
                                 ))}
                             </ul>
 
-                            {plan.key === "free" ? (
+                            {plan.key === "trial" ? (
                                 <Button variant="outline" disabled className="w-full">
-                                    Plano gratuito
+                                    14-dias Trial Gratuito
                                 </Button>
                             ) : isCurrentPlan ? (
-                                <Button variant="outline" disabled className="w-full">
-                                    Plano atual
+                                <Button variant="outline" disabled className="w-full border-purple-500 text-purple-700 dark:text-purple-400">
+                                    Seu Plano Atual
                                 </Button>
                             ) : (
                                 <form
@@ -201,8 +215,8 @@ export default async function AssinaturaPage({
                                 >
                                     <Button
                                         className={`w-full ${plan.featured
-                                                ? "bg-purple-600 hover:bg-purple-700"
-                                                : ""
+                                            ? "bg-purple-600 hover:bg-purple-700"
+                                            : ""
                                             }`}
                                     >
                                         Assinar
@@ -234,7 +248,7 @@ export default async function AssinaturaPage({
                     <div>
                         <p className="font-medium">Quais formas de pagamento são aceitas?</p>
                         <p className="text-slate-500">
-                            Cartão de crédito, débito e PIX (via Stripe).
+                            PIX, Cartão de crédito e Ticket (via Abacate Pay).
                         </p>
                     </div>
                 </div>
