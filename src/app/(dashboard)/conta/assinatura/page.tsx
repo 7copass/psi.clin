@@ -29,22 +29,6 @@ export default async function AssinaturaPage({
 
     const plans = [
         {
-            key: "trial",
-            name: "Trial",
-            price: 0,
-            tagline: "14 dias grátis — Acesso completo ao Plano Essencial sem necessidade de cartão.",
-            icon: Sparkles,
-            features: [
-                "Até 50 pacientes",
-                "40 transcrições/mês (~10h)",
-                "SmartNotes ilimitado",
-                "5 Resumos Consolidados/mês",
-                "Ficha de Evolução com IA",
-                "Editor de notas clínicas",
-            ],
-            featured: false,
-        },
-        {
             key: "essential",
             name: "Essencial",
             price: 59.90,
@@ -198,11 +182,7 @@ export default async function AssinaturaPage({
                                 ))}
                             </ul>
 
-                            {plan.key === "trial" ? (
-                                <Button variant="outline" disabled className="w-full">
-                                    14-dias Trial Gratuito
-                                </Button>
-                            ) : isCurrentPlan ? (
+                            {isCurrentPlan ? (
                                 <Button variant="outline" disabled className="w-full border-purple-500 text-purple-700 dark:text-purple-400">
                                     Seu Plano Atual
                                 </Button>
@@ -219,7 +199,7 @@ export default async function AssinaturaPage({
                                             : ""
                                             }`}
                                     >
-                                        Assinar
+                                        {plan.key === "essential" ? "Teste por 14 dias grátis" : "Assinar"}
                                         <ArrowRight className="h-4 w-4 ml-2" />
                                     </Button>
                                 </form>
